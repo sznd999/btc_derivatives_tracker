@@ -46,21 +46,35 @@ longshort = get_global_long_short()
 oi_df = get_open_interest()
 liq_df = get_liquidations()
 
-col1, col2, col3 = st.columns(3)
+# Display metrics for long/short ratio
 if longshort:
+    col1, col2, col3 = st.columns(3)
     col1.metric("Long Account Ratio", float(longshort['longAccountRatio']))
     col2.metric("Short Account Ratio", float(longshort['shortAccountRatio']))
     ts = datetime.fromtimestamp(longshort['timestamp'] / 1000.0)
     col3.metric("Timestamp", ts.strftime('%Y-%m-%d %H:%M:%S'))
 
+    # Visual bar chart for ratio
+    ratio_df = pd.DataFrame({
+        'Position': ['Long', 'Short'],
+        'Ratio': [float(longshort['longAccountRatio']), float(longshort['shortAccountRatio'])]
+    })
+    st.subheader("Long vs Short Ratio")
+    st.bar_chart(ratio_df.set_index('Position'))
+
+# Open Interest Chart
 st.subheader("Open Interest History")
 if not oi_df.empty:
-    # Use sumOpenInterestValue if available, convert to float
     if 'sumOpenInterestValue' in oi_df.columns:
         st.line_chart(oi_df.set_index('timestamp')['sumOpenInterestValue'].astype(float))
     else:
-        st.dataframe(oi_df)
+        # fallback to other open interest columns if available
+        if 'sumOpenInterest' in oi_df.columns:
+            st.line_chart(oi_df.set_index('timestamp')['sumOpenInterest'].astype(float))
+        else:
+            st.dataframe(oi_df)
 
+# Recent Liquidations Table
 st.subheader("Recent Liquidations")
 if not liq_df.empty:
     st.dataframe(liq_df)
